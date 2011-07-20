@@ -1,23 +1,15 @@
+### usage instructions: 
+## => From the CLI just digit: ruby main.rb
+
 #!/usr/bin/env ruby
 require "csv" 
 require "date"
 
-puts "Specify your .csv filename (default payroll.csv):"
-@csv_filename = gets.chomp
-
 class ProcessCSV
   
-  @months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-  time = Time.new
-  @salary_day = time.strftime("%D")
-  @bonus_day = time.strftime("%D")
-  @current_month = time.strftime("%B")
-  @current_year = time.strftime("%Y")
-  @currentmonth_index = @months.index(@current_month)
-  @remaining_months = @months.slice(@currentmonth_index, @months.length)
+  attr_reader :csv_filename
   
-  def self.checkProcessed?(csv_filename)
-      
+  def checkProcessed?
       csv_file = CSV.read(csv_filename)
       csv_file.shift  
       
@@ -33,17 +25,16 @@ class ProcessCSV
       
       processed_length = months_processed.length
       
-      ##### error - the file seems not processed even if it was !!!!!
       if ((months_processed[0] != @current_month) || (processed_length != @remaining_months.length) || (processed_length != salarydate_processed.length) || (processed_length != bonusdate_processed.length))
-      elsif ((!months_processed.any?) || (!salarydate_processed.any?) || (bonusdate_processed.any?)) 
+            return false
+      elsif ((!months_processed.all?) || (!salarydate_processed.all?) || (!bonusdate_processed.all?)) 
             return false
       else
-        return true
+            return true
       end
   end   
   
-  def self.processMonths(csv_filename)
-      
+  def processMonths
       CSV.open(csv_filename, "wb") do |csv|
         csv << ["Month", "Salary Payment Date", "Bonus Payment Date"]
         
@@ -61,15 +52,12 @@ class ProcessCSV
           checkFiftDay(month_index, fift_of_month, @bonus_day)
                     
           csv << [month, @salary_day, @bonus_day] 
-        
-        end 
-         
+        end   
       end
       puts "All the months were processed in the file '#{csv_filename}'." 
   end
   
-  def self.checkEndDay(month_index, last_of_month, salary_day)
-
+  def checkEndDay(month_index, last_of_month, salary_day)
       if (last_of_month == 'Sunday')
          @salary_day = Date.civil(@current_year.to_i, month_index, -3) 
       elsif (last_of_month == 'Saturday')
@@ -79,8 +67,7 @@ class ProcessCSV
       end  
   end
   
-  def self.checkFiftDay(month_index, fift_of_month, bonus_day)
-          
+  def checkFiftDay(month_index, fift_of_month, bonus_day)    
      if ((fift_of_month == 'Sunday'))
          @bonus_day = Date.civil(@current_year.to_i, month_index, 18) 
      elsif (fift_of_month == 'Saturday')
@@ -88,29 +75,45 @@ class ProcessCSV
      else
          @bonus_day = Date.civil(@current_year.to_i, month_index, 15)       
      end  
-  end  
+  end 
 
-end
-
-if @csv_filename == ''
-  @csv_filename = 'payroll.csv'
-end
-
-if File.extname(@csv_filename) != '.csv'
-  raise "Invalid filename"
-end
+  def initialize(csv_filename = nil)
+      @csv_filename = csv_filename
+      @months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+      time = Time.new
+      @salary_day = time.strftime("%D")
+      @bonus_day = time.strftime("%D")
+      @current_month = time.strftime("%B")
+      @current_year = time.strftime("%Y")
+      @currentmonth_index = @months.index(@current_month)
+      @remaining_months = @months.slice(@currentmonth_index, @months.length)
     
-if !File.exist?(@csv_filename)
-  puts "File '#{@csv_filename}' being created and processed..."
-  ProcessCSV.processMonths(@csv_filename)
-elsif !ProcessCSV.checkProcessed?(@csv_filename)
-  puts "File '#{@csv_filename}' being processed..." 
-  ProcessCSV.processMonths(@csv_filename)
-else
-  puts "File '#{@csv_filename}' already created and processed."   
-end   
-
-
+      if (@csv_filename == nil)
+        puts "Specify your .csv filename (default payroll.csv):"
+        @csv_filename = gets.chomp
+      end
+  
+      if @csv_filename == ''
+        @csv_filename = 'payroll.csv'
+      end
+      
+      if File.extname(@csv_filename) != '.csv'
+        raise "Invalid filename"
+      end
+          
+      if !File.exist?(@csv_filename)
+        puts "File '#{@csv_filename}' being created and processed..."
+        processMonths
+      elsif !checkProcessed?
+        puts "File '#{@csv_filename}' being processed..." 
+        processMonths
+      else
+        puts "File '#{@csv_filename}' already created and processed."   
+      end    
+  end
+  
+end
   
 
+processor = ProcessCSV.new()
 
